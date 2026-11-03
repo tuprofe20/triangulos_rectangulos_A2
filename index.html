@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuProfe20 Lab - Triángulos Rectángulos</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- KaTeX for beautiful math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    
+    <style>
+        /* Fun and legible font for the interface */
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            width: 100vw; height: 100dvh; 
+            user-select: none; 
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        /* Keyframe Animations */
+        @keyframes floatUp { 
+            0% { transform: translateY(105vh) rotate(0deg); } 
+            100% { transform: translateY(-105vh) rotate(360deg); } 
+        }
+        @keyframes slideInRight { 
+            0% { opacity: 0; transform: translateX(15px); } 
+            100% { opacity: 1; transform: translateX(0); } 
+        }
+        @keyframes confettiExplosion { 
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; } 
+            80% { opacity: 1; } 
+            100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); opacity: 0; } 
+        }
+        @keyframes jellyPop {
+            0% { transform: scale3d(.3, .3, .3); opacity: 0; }
+            20% { transform: scale3d(1.18, 1.18, 1.18); }
+            40% { transform: scale3d(.92, .92, .92); }
+            60% { transform: scale3d(1.06, 1.06, 1.06); opacity: 1; }
+            80% { transform: scale3d(.97, .97, .97); }
+            100% { transform: scale3d(1, 1, 1); opacity: 1; }
+        }
+        /* Robot Animations */
+        @keyframes robotFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes robotThinkTilt { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(6deg) translateY(-3px); } }
+        @keyframes robotJump { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-15px); } }
+        @keyframes robotTalkArmL { 0%, 100% { transform: rotate(45deg); } 50% { transform: rotate(95deg); } }
+        @keyframes robotTalkArmR { 0%, 100% { transform: rotate(-45deg); } 50% { transform: rotate(-95deg); } }
+
+        /* Scrollbar hiding utilities */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Animation classes */
+        .animate-floatUp { animation: floatUp linear infinite; }
+        .animate-slideInRight { animation: slideInRight 0.3s ease-out forwards; }
+        .animate-confettiExplosion { animation: confettiExplosion 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .animate-jellyPop { animation: jellyPop 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-robotFloat { animation: robotFloat 3s ease-in-out infinite; }
+        .animate-robotThinkTilt { animation: robotThinkTilt 2s ease-in-out infinite; }
+        .animate-robotJump { animation: robotJump 1s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+        .animate-robotTalkArmL { animation: robotTalkArmL 0.6s ease-in-out infinite; }
+        .animate-robotTalkArmR { animation: robotTalkArmR 0.6s ease-in-out infinite 0.1s; }
+
+        /* KaTeX style overrides for better visual hierarchy */
+        .katex { font-weight: 900 !important; }
+        .katex-display { margin: 0 !important; padding: 0 !important; }
+        .math-card .katex { font-size: clamp(0.9rem, 1.8vw, 1.25rem) !important; color: #1e293b !important; }
+        .math-enunciado .katex { font-size: clamp(0.9rem, 1.8vw, 1.4rem) !important; color: #ffffff !important; }
+        .math-current .katex { font-size: clamp(1rem, 2.5vw, 2.2rem) !important; color: #0f172a !important; }
+        .math-history .katex { font-size: clamp(0.9rem, 2vw, 1.6rem) !important; color: #475569 !important; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, memo } = React;
+
+        // --- SVG ICONS ---
+        const Icon = ({ paths, className = "", size = 24, fill = "none", strokeWidth = "2.5" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{__html: paths}} />
+        );
+
+        const VolumeX = (p) => <Icon {...p} paths='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>' />;
+        const Volume2 = (p) => <Icon {...p} paths='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>' />;
+        const Rocket = (p) => <Icon {...p} paths='<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>' />;
+        const Sparkles = (p) => <Icon {...p} paths='<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 3v4"/><path d="M17 5h4"/>' />;
+        const Home = (p) => <Icon {...p} paths='<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' />;
+        const ChevronLeft = (p) => <Icon {...p} paths='<polyline points="15 18 9 12 15 6"/>' />;
+        const ChevronRight = (p) => <Icon {...p} paths='<polyline points="9 18 15 12 9 6"/>' />;
+
+        // --- AUDIO ENGINE ---
+        const AudioController = {
+            ctx: null, muted: false,
+            init: function() {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) this.ctx = new AudioContext();
+            },
+            play: function(type) {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                const now = this.ctx.currentTime;
+                
+                if (type === 'pop') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'pop-reverse') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(650, now); osc.frequency.exponentialRampToValueAtTime(280, now + 0.12);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
+                } else if (type === 'success') {
+                    osc.disconnect();
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, i) => {
+                        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+                        o.type = 'triangle'; o.frequency.value = freq;
+                        o.connect(g); g.connect(this.ctx.destination);
+                        const startTime = now + (i * 0.07);
+                        g.gain.setValueAtTime(0, startTime); g.gain.linearRampToValueAtTime(0.2, startTime + 0.04); g.gain.linearRampToValueAtTime(0, startTime + 0.35);
+                        o.start(startTime); o.stop(startTime + 0.35);
+                    });
+                } else if (type === 'swoosh') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(280, now); osc.frequency.exponentialRampToValueAtTime(70, now + 0.18);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now); osc.stop(now + 0.18);
+                }
+            },
+            toggleMute: function() { this.muted = !this.muted; return this.muted; }
+        };
+
+        // --- MATH RENDERER ---
+        const MathDisplay = memo(({ latex, className = "", inline = false }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                if (containerRef.current && window.katex) {
+                    try {
+                        window.katex.render(latex, containerRef.current, {
+                            displayMode: !inline, throwOnError: false, strict: false, trust: true
+                        });
+                    } catch (e) {
+                        containerRef.current.innerText = latex;
+                    }
+                }
+            }, [latex, inline]);
+
+            return inline ? (
+                <span ref={containerRef} className={`inline-block align-middle ${className}`} />
+            ) : (
+                <div className={`relative w-full flex justify-center ${className}`}>
+                    <div ref={containerRef} className="w-full text-center" />
+                </div>
+            );
+        });
+
+        // --- DYNAMIC GRAPHICS ENGINE ---
+        // Draws a right triangle dynamically based on relative leg lengths
+        const RightTriangle = memo(({ a, b, labelA, labelB, labelC, color = "blue", emoji = null }) => {
+            const colorMap = {
+                blue: { fill: '#dbeafe', stroke: '#3b82f6', text: '#1e3a8a' },
+                green: { fill: '#dcfce7', stroke: '#22c55e', text: '#14532d' },
+                purple: { fill: '#f3e8ff', stroke: '#a855f7', text: '#581c87' },
+                amber: { fill: '#fef3c7', stroke: '#f59e0b', text: '#78350f' },
+                rose: { fill: '#ffe4e6', stroke: '#f43f5e', text: '#881337' }
+            };
+            const theme = colorMap[color] || colorMap.blue;
+
+            // Base SVG dimensions increased for better visibility
+            const w = 340; 
+            const h = 260;
+            const p = 50; // padding
+
+            // Scale to fit visually nicely
+            const maxVal = Math.max(a, b);
+            const drawA = (a / maxVal) * (h - 2 * p);
+            const drawB = (b / maxVal) * (w - 2 * p);
+
+            // Coordinates for standard orientation (right angle at bottom-left)
+            const x1 = p; // Right angle X
+            const y1 = h - p; // Right angle Y
+            const x2 = p; // Top X
+            const y2 = h - p - drawA; // Top Y
+            const x3 = p + drawB; // Right X
+            const y3 = h - p; // Right Y
+
+            return (
+                <div className="relative w-full h-full flex justify-center items-center select-none p-2 sm:p-4">
+                    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full max-h-[40vh] drop-shadow-xl overflow-visible transition-all duration-500">
+                        {/* Right angle square symbol */}
+                        <rect x={x1} y={y1 - 16} width="16" height="16" fill="none" stroke="#64748b" strokeWidth="2.5" />
+                        
+                        {/* Triangle Path */}
+                        <polygon 
+                            points={`${x1},${y1} ${x2},${y2} ${x3},${y3}`} 
+                            fill={theme.fill} 
+                            stroke={theme.stroke} 
+                            strokeWidth="5" 
+                            strokeLinejoin="round" 
+                            className="transition-all duration-500"
+                        />
+                        
+                        {/* Legs Labels */}
+                        <text x={x1 - 15} y={(y1 + y2)/2} fill={theme.text} fontSize="20" fontWeight="900" textAnchor="end" alignmentBaseline="middle">{labelA}</text>
+                        <text x={(x1 + x3)/2} y={y1 + 28} fill={theme.text} fontSize="20" fontWeight="900" textAnchor="middle">{labelB}</text>
+                        
+                        {/* Hypotenuse Label */}
+                        <text x={(x2 + x3)/2 + 12} y={(y2 + y3)/2 - 12} fill="#0f172a" fontSize="24" fontWeight="900" textAnchor="start">{labelC}</text>
+                        
+                        {/* Optional Emoji / Scenario Marker */}
+                        {emoji && (
+                            <text x={x2} y={y2 - 20} fontSize="32" textAnchor="middle">{emoji}</text>
+                        )}
+                    </svg>
+                </div>
+            );
+        });
+
+        // --- DATA & CONTENT ---
+        const EXERCISES = [
+            {
+                id: 1, title: "Ejercicio 1", subtitle: "Catetos Básicos",
+                cardGradient: "from-blue-500/30 to-cyan-600/30 border-blue-400", badgeColor: "bg-blue-500",
+                enunciado: () => <span>Del gráfico, halle el valor de <MathDisplay inline latex="x" />. Catetos miden <MathDisplay inline latex="2" /> y <MathDisplay inline latex="5" />.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`x^2 = 2^2 + 5^2`, 
+                        propertyText: "Teorema de Pitágoras", 
+                        robotSpeech: "¡Empecemos! El Teorema de Pitágoras nos dice que el cuadrado de la hipotenusa (el lado más largo, 'x') es igual a la suma de los cuadrados de los catetos.",
+                        graphic: <RightTriangle a={2} b={5} labelA="2" labelB="5" labelC="x" color="blue" />
+                    },
+                    { 
+                        latex: String.raw`x^2 = 4 + 25`, 
+                        propertyText: "Elevando al Cuadrado", 
+                        robotSpeech: "Resolvemos las potencias: 2 al cuadrado es 4, y 5 al cuadrado es 25." 
+                    },
+                    { 
+                        latex: String.raw`x^2 = 29`, 
+                        propertyText: "Sumando Catetos", 
+                        robotSpeech: "Al sumar 4 y 25 obtenemos 29. Ahora sabemos que x elevada al cuadrado vale 29."
+                    },
+                    { 
+                        latex: String.raw`x = \sqrt{29}`, 
+                        propertyText: "Raíz Cuadrada", 
+                        robotSpeech: "Para dejar a la 'x' solita, le aplicamos la raíz cuadrada al 29. ¡Esa es nuestra respuesta final!",
+                        graphic: <RightTriangle a={2} b={5} labelA="2" labelB="5" labelC="√29" color="blue" />
+                    }
+                ]
+            },
+            {
+                id: 2, title: "Ejercicio 2", subtitle: "Triángulo Notable",
+                cardGradient: "from-green-500/30 to-emerald-600/30 border-green-400", badgeColor: "bg-green-500",
+                enunciado: () => <span>Halle el valor de <MathDisplay inline latex="n" /> en el gráfico adjunto. Catetos miden <MathDisplay inline latex="5" /> y <MathDisplay inline latex="12" />.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`n^2 = 5^2 + 12^2`, 
+                        propertyText: "Planteando la Ecuación", 
+                        robotSpeech: "Nuevamente Pitágoras al rescate. La hipotenusa al cuadrado 'n²' es igual a la suma de los cuadrados de los catetos 5 y 12.",
+                        graphic: <RightTriangle a={5} b={12} labelA="5" labelB="12" labelC="n" color="green" />
+                    },
+                    { 
+                        latex: String.raw`n^2 = 25 + 144`, 
+                        propertyText: "Potencias de los Catetos", 
+                        robotSpeech: "Elevamos al cuadrado: 5 x 5 es 25 y 12 x 12 es 144. ¡Este es un triángulo muy famoso!" 
+                    },
+                    { 
+                        latex: String.raw`n^2 = 169`, 
+                        propertyText: "Suma Total", 
+                        robotSpeech: "Sumamos 25 + 144 y nos da 169." 
+                    },
+                    { 
+                        latex: String.raw`n = \sqrt{169} \implies \mathbf{n = 13}`, 
+                        propertyText: "Valor Exacto", 
+                        robotSpeech: "Extraemos la raíz cuadrada de 169. ¡Excelente, es 13! Este es el famoso triángulo pitagórico 5-12-13.",
+                        graphic: <RightTriangle a={5} b={12} labelA="5" labelB="12" labelC="13" color="green" />
+                    }
+                ]
+            },
+            {
+                id: 3, title: "Ejercicio 3", subtitle: "Cateto Desconocido",
+                cardGradient: "from-purple-500/30 to-fuchsia-600/30 border-purple-400", badgeColor: "bg-purple-500",
+                enunciado: () => <span>Del gráfico, halle el valor de <MathDisplay inline latex="a" />. Hipotenusa: <MathDisplay inline latex="2\sqrt{7}" />, Cateto: <MathDisplay inline latex="\sqrt{3}" /></span>,
+                steps: [
+                    { 
+                        latex: String.raw`(2\sqrt{7})^2 = a^2 + (\sqrt{3})^2`, 
+                        propertyText: "Despejando un Cateto", 
+                        robotSpeech: "Esta vez conocemos la hipotenusa. La colocamos sola de un lado de la igualdad, y los catetos 'a' y '√3' del otro lado.",
+                        graphic: <RightTriangle a={2.5} b={1.7} labelA="a" labelB="√3" labelC="2√7" color="purple" />
+                    },
+                    { 
+                        latex: String.raw`2^2 \cdot (\sqrt{7})^2 = a^2 + 3`, 
+                        propertyText: "Propiedades de Raíces", 
+                        robotSpeech: "Atención aquí: el cuadrado afecta tanto al 2 como a la raíz de 7. (2² = 4) y la raíz se cancela con el cuadrado dejando un 7." 
+                    },
+                    { 
+                        latex: String.raw`4 \cdot 7 = a^2 + 3`, 
+                        propertyText: "Multiplicando", 
+                        robotSpeech: "Multiplicamos 4 por 7 para obtener 28 en la hipotenusa al cuadrado." 
+                    },
+                    { 
+                        latex: String.raw`28 = a^2 + 3 \implies a^2 = 25`, 
+                        propertyText: "Restando", 
+                        robotSpeech: "Pasamos el 3 restando al otro lado. 28 menos 3 es igual a 25. Así que a² es 25." 
+                    },
+                    { 
+                        latex: String.raw`a = \sqrt{25} \implies \mathbf{a = 5}`, 
+                        propertyText: "Resultado Final", 
+                        robotSpeech: "La raíz cuadrada de 25 es 5. ¡Hemos encontrado la longitud del cateto faltante!",
+                        graphic: <RightTriangle a={5} b={1.7} labelA="5" labelB="√3" labelC="2√7" color="purple" />
+                    }
+                ]
+            },
+            {
+                id: 4, title: "Ejercicio 4", subtitle: "Generador Pitagórico",
+                cardGradient: "from-amber-500/30 to-orange-600/30 border-amber-400", badgeColor: "bg-amber-500",
+                enunciado: () => <span>Si <MathDisplay inline latex="m=7" /> y <MathDisplay inline latex="n=1" />, calcule el perímetro del triángulo pitagórico.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`\text{Lados: } (m^2-n^2), (2mn), (m^2+n^2)`, 
+                        propertyText: "Regla General", 
+                        robotSpeech: "Todo triángulo pitagórico se puede generar usando dos números 'm' y 'n'. Sus lados siempre tendrán estas formas especiales." 
+                    },
+                    { 
+                        latex: String.raw`\text{Cateto 1 } = 7^2 - 1^2 = 49 - 1 = 48`, 
+                        propertyText: "Calculando Cateto 1", 
+                        robotSpeech: "Reemplazamos m=7 y n=1. Para el primer cateto hacemos la resta de cuadrados: 49 menos 1 da 48." 
+                    },
+                    { 
+                        latex: String.raw`\text{Cateto 2 } = 2(7)(1) = 14`, 
+                        propertyText: "Calculando Cateto 2", 
+                        robotSpeech: "Para el segundo cateto multiplicamos 2 por m y por n. 2 por 7 por 1 es igual a 14." 
+                    },
+                    { 
+                        latex: String.raw`\text{Hipotenusa } = 7^2 + 1^2 = 49 + 1 = 50`, 
+                        propertyText: "Calculando Hipotenusa", 
+                        robotSpeech: "La hipotenusa siempre es la suma de los cuadrados. 49 más 1 nos da 50.",
+                        graphic: <RightTriangle a={48} b={14} labelA="48" labelB="14" labelC="50" color="amber" />
+                    },
+                    { 
+                        latex: String.raw`\text{Perímetro } = 48 + 14 + 50 = \mathbf{112}`, 
+                        propertyText: "Suma del Perímetro", 
+                        robotSpeech: "El problema nos pide el perímetro, que es la suma de todos los lados. ¡48 + 14 + 50 resulta en 112!" 
+                    }
+                ]
+            },
+            {
+                id: 5, title: "Ejercicio 5", subtitle: "Área Pitagórica",
+                cardGradient: "from-rose-500/30 to-pink-600/30 border-rose-400", badgeColor: "bg-rose-500",
+                enunciado: () => <span>Si <MathDisplay inline latex="m=5" /> y <MathDisplay inline latex="n=3" />, calcule el área del triángulo pitagórico.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`\text{Lados: } (m^2-n^2), (2mn), (m^2+n^2)`, 
+                        propertyText: "Fórmulas Generadoras", 
+                        robotSpeech: "Nuevamente usamos las fórmulas de los triángulos pitagóricos, esta vez con m=5 y n=3." 
+                    },
+                    { 
+                        latex: String.raw`\text{Cateto 1 (Base)} = 5^2 - 3^2 = 25 - 9 = 16`, 
+                        propertyText: "Hallando la Base", 
+                        robotSpeech: "El primer cateto será 25 menos 9, lo cual nos da 16." 
+                    },
+                    { 
+                        latex: String.raw`\text{Cateto 2 (Altura)} = 2(5)(3) = 30`, 
+                        propertyText: "Hallando la Altura", 
+                        robotSpeech: "El segundo cateto es 2 multiplicado por 5 y por 3, resultando en 30.",
+                        graphic: <RightTriangle a={30} b={16} labelA="30" labelB="16" labelC="34" color="rose" />
+                    },
+                    { 
+                        latex: String.raw`\text{Área } = \frac{16 \times 30}{2}`, 
+                        propertyText: "Fórmula del Área", 
+                        robotSpeech: "Para el área de un triángulo rectángulo solo necesitamos los catetos: (Base x Altura) dividido entre 2. ¡No necesitamos calcular la hipotenusa!" 
+                    },
+                    { 
+                        latex: String.raw`\text{Área } = \frac{480}{2} = \mathbf{240}`, 
+                        propertyText: "Cálculo Final", 
+                        robotSpeech: "Multiplicamos 16 por 30 (480) y la mitad de 480 es 240 unidades cuadradas. ¡Perfecto!" 
+                    }
+                ]
+            },
+            {
+                id: 6, title: "Ejercicio 6", subtitle: "Problema del Árbol",
+                cardGradient: "from-lime-500/30 to-green-600/30 border-lime-400", badgeColor: "bg-lime-500",
+                enunciado: () => <span>Al atardecer, un árbol proyecta una sombra de <MathDisplay inline latex="5\text{ m}" />. Si la distancia de la cima al extremo de la sombra es <MathDisplay inline latex="13\text{ m}" />, ¿cuál es la altura?</span>,
+                steps: [
+                    { 
+                        latex: String.raw`13^2 = h^2 + 5^2`, 
+                        propertyText: "Modelando la Realidad", 
+                        robotSpeech: "El árbol forma el cateto vertical (h), la sombra es el cateto horizontal (5m) y la distancia desde la punta al final de la sombra es la hipotenusa (13m).",
+                        graphic: <RightTriangle a={12} b={5} labelA="h" labelB="5 m" labelC="13 m" color="green" emoji="🌳" />
+                    },
+                    { 
+                        latex: String.raw`169 = h^2 + 25`, 
+                        propertyText: "Resolviendo Cuadrados", 
+                        robotSpeech: "Elevamos al cuadrado: 13 al cuadrado es 169 y 5 al cuadrado es 25." 
+                    },
+                    { 
+                        latex: String.raw`h^2 = 169 - 25 = 144`, 
+                        propertyText: "Despejando Altura", 
+                        robotSpeech: "Pasamos el 25 restando al lado izquierdo. 169 menos 25 es exactamente 144." 
+                    },
+                    { 
+                        latex: String.raw`h = \sqrt{144} \implies \mathbf{h = 12\text{ m}}`, 
+                        propertyText: "Altura Obtenida", 
+                        robotSpeech: "La raíz cuadrada de 144 es 12. ¡El árbol mide exactamente 12 metros de altura!" 
+                    }
+                ]
+            },
+            {
+                id: 7, title: "Ejercicio 7", subtitle: "Rescatando al Gato",
+                cardGradient: "from-blue-500/30 to-indigo-600/30 border-blue-400", badgeColor: "bg-blue-500",
+                enunciado: () => <span>Gato atrapado a <MathDisplay inline latex="8\text{ m}" /> de altura. Escalera mide <MathDisplay inline latex="10\text{ m}" />. Determine a qué distancia de la pared ubicar la base de la escalera.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`10^2 = 8^2 + d^2`, 
+                        propertyText: "Aplicando el Teorema", 
+                        robotSpeech: "La escalera forma la hipotenusa (10m), la pared es un cateto (8m) y el suelo es el cateto que buscamos (d).",
+                        graphic: <RightTriangle a={8} b={6} labelA="8 m" labelB="d" labelC="10 m" color="blue" emoji="🐱" />
+                    },
+                    { 
+                        latex: String.raw`100 = 64 + d^2`, 
+                        propertyText: "Potencias Simples", 
+                        robotSpeech: "Elevamos: 10 al cuadrado es 100, y 8 al cuadrado es 64." 
+                    },
+                    { 
+                        latex: String.raw`d^2 = 100 - 64 = 36`, 
+                        propertyText: "Resta Básica", 
+                        robotSpeech: "El 64 pasa restando al otro lado, dejándonos con 36." 
+                    },
+                    { 
+                        latex: String.raw`d = \sqrt{36} \implies \mathbf{d = 6\text{ m}}`, 
+                        propertyText: "Misión Cumplida", 
+                        robotSpeech: "La raíz cuadrada de 36 es 6. ¡Debemos colocar la escalera a 6 metros de la pared para rescatar al minino!" 
+                    }
+                ]
+            },
+            {
+                id: 8, title: "Ejercicio 8", subtitle: "Raíz Inexacta",
+                cardGradient: "from-fuchsia-500/30 to-purple-600/30 border-fuchsia-400", badgeColor: "bg-fuchsia-500",
+                enunciado: () => <span>Del gráfico, halle el valor de la hipotenusa <MathDisplay inline latex="x" /> si los catetos miden <MathDisplay inline latex="1" /> y <MathDisplay inline latex="2" />.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`x^2 = 1^2 + 2^2`, 
+                        propertyText: "Teorema Fundamental", 
+                        robotSpeech: "Hipotenusa 'x' al cuadrado es igual a 1 al cuadrado más 2 al cuadrado.",
+                        graphic: <RightTriangle a={2} b={1} labelA="2" labelB="1" labelC="x" color="purple" />
+                    },
+                    { 
+                        latex: String.raw`x^2 = 1 + 4`, 
+                        propertyText: "Operación Directa", 
+                        robotSpeech: "Las potencias son sencillas: 1x1 es 1 y 2x2 es 4." 
+                    },
+                    { 
+                        latex: String.raw`x^2 = 5`, 
+                        propertyText: "Sumatoria", 
+                        robotSpeech: "Sumamos y obtenemos 5." 
+                    },
+                    { 
+                        latex: String.raw`x = \mathbf{\sqrt{5}}`, 
+                        propertyText: "Valor Irracional", 
+                        robotSpeech: "Como el 5 no tiene raíz cuadrada exacta, la respuesta se deja expresada como raíz de 5." 
+                    }
+                ]
+            },
+            {
+                id: 9, title: "Ejercicio 9", subtitle: "El Clásico 3-4-5",
+                cardGradient: "from-orange-500/30 to-red-600/30 border-orange-400", badgeColor: "bg-orange-500",
+                enunciado: () => <span>Halle el valor de la hipotenusa <MathDisplay inline latex="m" /> en el triángulo cuyos catetos son <MathDisplay inline latex="3" /> y <MathDisplay inline latex="4" />.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`m^2 = 3^2 + 4^2`, 
+                        propertyText: "Formulación", 
+                        robotSpeech: "Uno de los triángulos más famosos de toda la geometría. m² = 3² + 4².",
+                        graphic: <RightTriangle a={3} b={4} labelA="3" labelB="4" labelC="m" color="amber" />
+                    },
+                    { 
+                        latex: String.raw`m^2 = 9 + 16`, 
+                        propertyText: "Cuadrados Básicos", 
+                        robotSpeech: "Calculamos los cuadrados: 9 y 16." 
+                    },
+                    { 
+                        latex: String.raw`m^2 = 25`, 
+                        propertyText: "Uniendo Valores", 
+                        robotSpeech: "Al sumar 9 y 16, mágicamente obtenemos un cuadrado perfecto: 25." 
+                    },
+                    { 
+                        latex: String.raw`m = \sqrt{25} \implies \mathbf{m = 5}`, 
+                        propertyText: "Triángulo Notable", 
+                        robotSpeech: "La raíz de 25 es 5. Los egipcios usaban cuerdas con nudos a distancias 3, 4 y 5 para construir ángulos rectos perfectos." 
+                    }
+                ]
+            },
+            {
+                id: 10, title: "Ejercicio 10", subtitle: "Cuidado con las Raíces",
+                cardGradient: "from-cyan-500/30 to-teal-600/30 border-cyan-400", badgeColor: "bg-cyan-500",
+                enunciado: () => <span>Halle el valor de <MathDisplay inline latex="a" />. La hipotenusa es <MathDisplay inline latex="4" />, un cateto es <MathDisplay inline latex="2\sqrt{3}" /> y el otro cateto es <MathDisplay inline latex="a" />.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`4^2 = a^2 + (2\sqrt{3})^2`, 
+                        propertyText: "Pitágoras con Irracionales", 
+                        robotSpeech: "Hipotenusa (4) al cuadrado es igual al cateto 'a' al cuadrado más el cateto '2√3' al cuadrado.",
+                        graphic: <RightTriangle a={2} b={3.46} labelA="a" labelB="2√3" labelC="4" color="green" />
+                    },
+                    { 
+                        latex: String.raw`16 = a^2 + 4(3)`, 
+                        propertyText: "Elevando con Cuidado", 
+                        robotSpeech: "4 al cuadrado es 16. En el otro término, el 2 se vuelve 4 y la raíz de 3 se cancela volviéndose un 3 libre." 
+                    },
+                    { 
+                        latex: String.raw`16 = a^2 + 12`, 
+                        propertyText: "Producto en el Cateto", 
+                        robotSpeech: "Multiplicamos 4 por 3 para obtener 12." 
+                    },
+                    { 
+                        latex: String.raw`a^2 = 16 - 12 = 4`, 
+                        propertyText: "Despejando", 
+                        robotSpeech: "El 12 pasa a restar al 16, dejando a² = 4." 
+                    },
+                    { 
+                        latex: String.raw`a = \sqrt{4} \implies \mathbf{a = 2}`, 
+                        propertyText: "Cateto Encontrado", 
+                        robotSpeech: "¡Muy fácil! La raíz cuadrada de 4 es 2." 
+                    }
+                ]
+            },
+            {
+                id: 11, title: "Ejercicio 11", subtitle: "Otro Perímetro",
+                cardGradient: "from-pink-500/30 to-rose-600/30 border-pink-400", badgeColor: "bg-pink-500",
+                enunciado: () => <span>Si <MathDisplay inline latex="m=6" /> y <MathDisplay inline latex="n=1" />, calcule el perímetro del triángulo pitagórico generado.</span>,
+                steps: [
+                    { 
+                        latex: String.raw`\text{Lados: } (m^2-n^2), (2mn), (m^2+n^2)`, 
+                        propertyText: "Plantilla Base", 
+                        robotSpeech: "Recordamos las fórmulas mágicas para crear triángulos rectángulos de lados enteros." 
+                    },
+                    { 
+                        latex: String.raw`\text{Cateto 1 } = 6^2 - 1^2 = 36 - 1 = 35`, 
+                        propertyText: "Primer Lado", 
+                        robotSpeech: "Con m=6 y n=1, el primer cateto es 36 - 1 = 35." 
+                    },
+                    { 
+                        latex: String.raw`\text{Cateto 2 } = 2(6)(1) = 12`, 
+                        propertyText: "Segundo Lado", 
+                        robotSpeech: "El segundo cateto es simplemente el doble producto: 12." 
+                    },
+                    { 
+                        latex: String.raw`\text{Hipotenusa } = 6^2 + 1^2 = 36 + 1 = 37`, 
+                        propertyText: "Lado Mayor", 
+                        robotSpeech: "La hipotenusa será la suma de los cuadrados: 36 + 1 = 37.",
+                        graphic: <RightTriangle a={35} b={12} labelA="35" labelB="12" labelC="37" color="rose" />
+                    },
+                    { 
+                        latex: String.raw`\text{Perímetro } = 35 + 12 + 37 = \mathbf{84}`, 
+                        propertyText: "Suma de Lados", 
+                        robotSpeech: "Al sumar 35 + 12 + 37 descubrimos que el perímetro de este genial triángulo es 84." 
+                    }
+                ]
+            },
+            {
+                id: 12, title: "Ejercicio 12", subtitle: "Tirando el Cable",
+                cardGradient: "from-blue-600/30 to-indigo-800/30 border-blue-500", badgeColor: "bg-blue-600",
+                enunciado: () => <span>Se quiere colocar un cable desde la cima de un faro de <MathDisplay inline latex="15\text{ m}" /> de altura, hasta un punto situado a <MathDisplay inline latex="20\text{ m}" /> de la base. ¿Cuánto mide el cable?</span>,
+                steps: [
+                    { 
+                        latex: String.raw`c^2 = 15^2 + 20^2`, 
+                        propertyText: "Contextualizando", 
+                        robotSpeech: "El faro es la altura (15), el suelo es la base (20) y el cable estirado será la hipotenusa 'c'.",
+                        graphic: <RightTriangle a={15} b={20} labelA="15 m" labelB="20 m" labelC="c" color="blue" emoji="🗼" />
+                    },
+                    { 
+                        latex: String.raw`c^2 = 225 + 400`, 
+                        propertyText: "Números Grandes", 
+                        robotSpeech: "15 al cuadrado es 225, y 20 al cuadrado es 400. (Nota: Esto es proporcional al clásico triángulo 3-4-5 multiplicado por 5)." 
+                    },
+                    { 
+                        latex: String.raw`c^2 = 625`, 
+                        propertyText: "Sumatoria", 
+                        robotSpeech: "225 más 400 nos da 625." 
+                    },
+                    { 
+                        latex: String.raw`c = \sqrt{625} \implies \mathbf{c = 25\text{ m}}`, 
+                        propertyText: "Respuesta Obtenida", 
+                        robotSpeech: "Extraemos la raíz de 625 que es 25. ¡Se necesitan 25 metros de cable! Has completado el Lab 20 con éxito. ¡Felicidades!" 
+                    }
+                ]
+            }
+        ];
+
+        // --- COMPONENTS ---
+        const FloatingBackground = memo(() => {
+            const symbols = ['△', '∠', 'a²', 'b²', 'c²', '√', 'π', '+', '='];
+            const elements = Array.from({ length: 30 }).map((_, i) => ({
+                id: i, symbol: symbols[Math.floor(Math.random() * symbols.length)], left: `${Math.random() * 100}%`,
+                animationDuration: `${12 + Math.random() * 15}s`, animationDelay: `-${Math.random() * 20}s`,
+                fontSize: `${1.5 + Math.random() * 3}rem`, opacity: 0.1 + Math.random() * 0.15
+            }));
+            return (
+                <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                    {elements.map((el) => (
+                        <div key={el.id} className="absolute text-white font-black animate-floatUp select-none drop-shadow-lg" style={{ left: el.left, bottom: '-15%', fontSize: el.fontSize, opacity: el.opacity, animationDuration: el.animationDuration, animationDelay: el.animationDelay }}>
+                            {el.symbol}
+                        </div>
+                    ))}
+                </div>
+            );
+        });
+
+        const Confetti = memo(() => {
+            const colors = ['#fde047', '#60a5fa', '#f472b6', '#34d399', '#a78bfa', '#ff5722'];
+            const pieces = Array.from({ length: 120 }).map((_, i) => ({
+                id: i, left: `${50 + (Math.random() * 20 - 10)}%`, color: colors[Math.floor(Math.random() * colors.length)],
+                tx: `${(Math.random() - 0.5) * 800}px`, ty: `${(Math.random() - 1) * 800}px`, rot: `${Math.random() * 720}deg`, delay: `${Math.random() * 0.2}s`
+            }));
+            return (
+                <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
+                    {pieces.map((p) => (
+                        <div key={p.id} className="absolute w-4 h-4 sm:w-5 sm:h-5 rounded-full animate-confettiExplosion shadow-sm" style={{ backgroundColor: p.color, '--tx': p.tx, '--ty': p.ty, '--rot': p.rot, animationDelay: p.delay, left: p.left, top: '50%' }} />
+                    ))}
+                </div>
+            );
+        });
+
+        const RobotAssistant = ({ step, maxSteps }) => {
+            const isFinalStep = step >= maxSteps;
+            const isThinking = step === maxSteps - 1;
+
+            const getContainerAnim = () => { if (isFinalStep) return 'animate-robotJump'; if (isThinking) return 'animate-robotThinkTilt'; return 'animate-robotFloat'; };
+            const getArmLAnim = () => { if (isFinalStep) return 'rotate-[150deg] animate-pulse'; if (step > 0) return 'animate-robotTalkArmL'; return 'rotate-45'; };
+            const getArmRAnim = () => { if (isFinalStep) return '-rotate-[150deg] animate-pulse'; if (step > 0) return 'animate-robotTalkArmR'; return '-rotate-45'; };
+            
+            const getEyes = () => {
+                if (isFinalStep) return <div className="w-full flex justify-between px-1.5"><div className="w-3.5 h-2 bg-emerald-400 rounded-t-full mt-1"></div><div className="w-3.5 h-2 bg-emerald-400 rounded-t-full mt-1"></div></div>;
+                if (step === 0) return <div className="w-full flex justify-between px-2"><div className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse"></div><div className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse"></div></div>;
+                return <div className="w-full flex justify-between px-1.5"><div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"></div><div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"></div></div>;
+            };
+            const getMouth = () => {
+                if (isFinalStep) return <div className="w-6 h-3.5 bg-rose-400 rounded-b-full mt-1.5"></div>;
+                if (step === 0) return <div className="w-4 h-1.5 bg-cyan-300 rounded-full mt-2"></div>;
+                return <div className="w-3.5 h-3.5 bg-rose-400 rounded-full mt-1 animate-ping"></div>;
+            };
+
+            return (
+                <div className={`relative flex flex-col items-center drop-shadow-lg select-none ${getContainerAnim()}`}>
+                    <div className="relative z-0 flex flex-col items-center translate-y-1">
+                        <div className={`w-3.5 h-3.5 rounded-full shadow-[0_0_10px_currentColor] z-10 transition-colors duration-300 ${isFinalStep ? 'text-emerald-400 bg-emerald-400' : 'text-yellow-400 bg-yellow-400 animate-pulse'}`}></div>
+                        <div className="w-1.5 h-4 bg-slate-300"></div>
+                    </div>
+                    <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-white to-slate-200 rounded-[1.2rem] border-[3px] border-indigo-400 shadow-xl flex flex-col items-center justify-center p-1.5">
+                        <div className="w-full h-full bg-slate-900 rounded-lg flex flex-col items-center justify-center p-1.5 shadow-inner border-2 border-indigo-500">
+                            {getEyes()} {getMouth()}
+                        </div>
+                    </div>
+                    <div className={`absolute top-1/2 -left-2 w-3 h-5 bg-slate-200 border-[2.5px] border-indigo-400 rounded-full z-0 origin-top ${getArmLAnim()}`}></div>
+                    <div className={`absolute top-1/2 -right-2 w-3 h-5 bg-slate-200 border-[2.5px] border-indigo-400 rounded-full z-0 origin-top ${getArmRAnim()}`}></div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        function App() {
+            const [view, setView] = useState('home');
+            const [exIdx, setExIdx] = useState(0);
+            const [step, setStep] = useState(0);
+            const [isMuted, setIsMuted] = useState(false);
+            const scrollContainerRef = useRef(null);
+
+            const currentExercise = EXERCISES[exIdx];
+            const maxSteps = currentExercise.steps.length - 1;
+            const currentStepData = currentExercise.steps[step];
+            const EnunciadoText = currentExercise.enunciado;
+
+            const handleInteraction = () => AudioController.init();
+
+            useEffect(() => {
+                if(scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+                }
+            }, [step, exIdx, view]);
+
+            const startExercise = (index) => {
+                handleInteraction();
+                AudioController.play('swoosh');
+                setExIdx(index);
+                setStep(0);
+                setView('lab');
+            };
+
+            const nextStep = () => {
+                handleInteraction();
+                if (step < maxSteps) {
+                    const next = step + 1;
+                    setStep(next);
+                    if (next === maxSteps) AudioController.play('success');
+                    else AudioController.play('pop');
+                } else {
+                    if (exIdx < EXERCISES.length - 1) {
+                        AudioController.play('swoosh');
+                        setExIdx(exIdx + 1);
+                        setStep(0);
+                    } else {
+                        AudioController.play('swoosh');
+                        setView('home');
+                    }
+                }
+            };
+
+            const prevStep = () => {
+                handleInteraction();
+                if (step > 0) {
+                    setStep(step - 1);
+                    AudioController.play('pop-reverse');
+                }
+            };
+
+            const toggleMute = () => { handleInteraction(); setIsMuted(AudioController.toggleMute()); };
+
+            if (view === 'home') {
+                return (
+                    <div className="w-screen min-h-[100dvh] bg-gradient-to-br from-[#1e3a8a] via-[#4338ca] to-[#047857] flex flex-col items-center justify-start p-4 sm:p-6 relative font-fun overflow-y-auto overflow-x-hidden scrollbar-hide">
+                        <FloatingBackground />
+                        
+                        <div className="w-[96%] max-w-[1400px] z-20 flex items-center justify-between mb-8 sm:mb-12 mt-2">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border-2 border-yellow-300 bg-white/15 backdrop-blur-md text-yellow-300 font-black tracking-wider uppercase shadow-md text-sm sm:text-base">
+                                <Rocket className="w-5 h-5 text-yellow-300" /> TuProfe20 Lab
+                            </div>
+                            <button onClick={toggleMute} className="p-2 sm:p-3 rounded-2xl bg-white/20 border-2 border-white/30 backdrop-blur-md text-white hover:bg-white/30 transition-all active:scale-95">
+                                {isMuted ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+                            </button>
+                        </div>
+
+                        <div className="relative z-10 text-center w-[96%] max-w-[1400px] flex flex-col items-center">
+                            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white mb-3 sm:mb-5 drop-shadow-[0_6px_0_rgba(0,0,0,0.3)] tracking-tight leading-none uppercase">
+                                Triángulos <span className="text-yellow-300 underline decoration-wavy decoration-cyan-400">Rectángulos</span>
+                            </h1>
+                            <p className="text-base sm:text-xl lg:text-2xl text-blue-100 mb-8 sm:mb-12 font-bold max-w-3xl leading-relaxed">
+                                ¡Aplica el Teorema de Pitágoras con nosotros en esta súper simulación interactiva! 📐🤖
+                            </p>
+
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-12">
+                                {EXERCISES.map((ex, idx) => (
+                                    <button
+                                        key={ex.id}
+                                        onClick={() => startExercise(idx)}
+                                        className="group text-left p-4 sm:p-5 rounded-[1.5rem] bg-gradient-to-br bg-opacity-90 backdrop-blur-xl border-[3px] border-white/40 hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)] transition-all flex flex-col relative overflow-hidden shadow-lg min-h-[10rem] sm:min-h-[12rem]"
+                                        style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }}
+                                    >
+                                        <div className={`absolute inset-0 opacity-80 ${ex.cardGradient}`}></div>
+                                        <div className="relative z-10 flex-1 flex flex-col">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className={`${ex.badgeColor} text-white text-xs sm:text-sm font-black px-3 py-1 rounded-md uppercase tracking-widest shadow-sm shrink-0`}>
+                                                    Reto {ex.id}
+                                                </span>
+                                                <span className="bg-black/20 text-white text-xs font-bold px-2 py-1 rounded-md">
+                                                    {ex.steps.length} pasos
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 my-2 bg-white/95 rounded-xl p-3 text-slate-900 shadow-inner overflow-hidden flex items-center justify-center border border-white/60 w-full pointer-events-none math-card">
+                                                <MathDisplay latex={ex.steps[0].latex} />
+                                            </div>
+                                            <div className="text-white text-sm sm:text-base font-black text-center mt-2 drop-shadow-md">
+                                                {ex.subtitle}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="w-screen h-[100dvh] bg-gradient-to-br from-[#0f172a] via-[#1e3a8a] to-[#0f766e] text-slate-800 flex flex-col p-2 sm:p-4 relative font-fun overflow-hidden">
+                    <FloatingBackground />
+                    {step === maxSteps && <Confetti />}
+
+                    {/* Navbar InGame */}
+                    <div className="shrink-0 relative z-10 w-[96%] max-w-[1400px] mx-auto flex justify-between items-center mb-3 sm:mb-4 px-1">
+                        <button onClick={() => { AudioController.play('swoosh'); setView('home'); }} className="flex items-center justify-center px-4 py-2 sm:px-5 sm:py-2.5 rounded-[1rem] sm:rounded-[1.2rem] bg-white/10 border-[3px] border-white/30 backdrop-blur-md text-white font-black hover:bg-white/20 transition-all shadow-lg active:scale-95 text-sm sm:text-base hover:scale-105">
+                            <Home className="w-5 h-5 sm:mr-2" />
+                            <span className="hidden sm:inline">Portada</span>
+                        </button>
+
+                        <div className="flex items-center gap-1.5 sm:gap-2 bg-black/30 p-1.5 sm:p-2 rounded-[1rem] sm:rounded-[1.2rem] border-2 border-white/20 backdrop-blur-md shadow-lg overflow-x-auto scrollbar-hide max-w-[50vw]">
+                            {EXERCISES.map((ex, i) => (
+                                <button
+                                    key={ex.id}
+                                    onClick={() => startExercise(i)}
+                                    className={`shrink-0 w-8 h-8 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-[1rem] font-black text-sm sm:text-base transition-all ${exIdx === i ? 'bg-yellow-400 text-slate-900 scale-110 shadow-[0_0_15px_rgba(250,204,21,0.6)]' : 'text-white hover:bg-white/20'}`}
+                                >
+                                    {ex.id}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button onClick={toggleMute} className="p-2 sm:p-3 rounded-[1rem] sm:rounded-[1.2rem] bg-white/10 border-[3px] border-white/30 text-white hover:bg-white/20 transition-all shadow-lg active:scale-95 hover:scale-105">
+                            {isMuted ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        </button>
+                    </div>
+
+                    <div className="flex-1 min-h-0 relative z-10 w-[96%] max-w-[1400px] mx-auto bg-white rounded-[2rem] sm:rounded-[2.5rem] border-[6px] sm:border-[8px] border-slate-100 shadow-[0_30px_60px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
+                        
+                        {/* Enunciado Area */}
+                        <div className="shrink-0 bg-slate-900 border-b-[4px] border-blue-500 px-4 py-3 sm:px-6 flex flex-col justify-center relative shadow-md z-20">
+                            <div className="flex justify-between items-center w-full max-w-5xl mx-auto mb-2">
+                                <span className="bg-yellow-400 text-slate-900 font-black text-xs sm:text-sm px-3 py-1 rounded-md uppercase tracking-widest shadow-sm">
+                                    {currentExercise.title}
+                                </span>
+                                <span className="text-cyan-200 font-bold text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-md">
+                                    {currentExercise.subtitle}
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-white font-bold text-lg sm:text-xl md:text-2xl text-center w-full max-w-5xl mx-auto leading-relaxed math-enunciado">
+                                <EnunciadoText />
+                            </div>
+                        </div>
+
+                        {/* Desarrollo Contínuo */}
+                        <div className="flex-1 flex flex-col lg:flex-row p-4 sm:p-6 relative bg-slate-50 overflow-hidden w-full gap-4 sm:gap-6">
+                            <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#000_2px,transparent_2px)] [background-size:20px_20px] pointer-events-none"></div>
+
+                            {/* Left Panel: Steps */}
+                            <div className="flex-1 lg:w-[55%] flex flex-col relative overflow-hidden bg-white/60 rounded-[2rem] border-[3px] border-slate-200 shadow-inner">
+                                {/* Badge actual arriba flotando */}
+                                <div key={`badge-${exIdx}-${step}`} className="z-20 mt-4 mb-2 animate-jellyPop text-center shrink-0">
+                                    <span className={`inline-flex items-center gap-2 sm:gap-3 px-5 py-2 sm:px-6 sm:py-2.5 rounded-[1rem] font-black text-sm sm:text-lg lg:text-xl shadow-lg border-2 ${step === maxSteps ? 'bg-amber-400 text-slate-900 border-yellow-200' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-400'}`}>
+                                        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" /> 
+                                        <span>{currentStepData.propertyText}</span>
+                                    </span>
+                                </div>
+
+                                {/* Contenedor escrolleable */}
+                                <div ref={scrollContainerRef} className="w-full flex-1 flex flex-col items-center justify-start z-10 px-2 sm:px-4 space-y-4 sm:space-y-6 overflow-y-auto scrollbar-hide pb-6">
+                                    {currentExercise.steps.slice(0, step + 1).map((s, idx) => (
+                                        <div key={`${exIdx}-${idx}`} className={`transition-all duration-300 w-full flex flex-col items-center ${idx === step ? 'opacity-100 scale-100 animate-slideInRight' : 'opacity-50 scale-95'}`}>
+                                            
+                                            <div className={`px-4 py-3 sm:px-8 sm:py-4 w-full max-w-2xl text-center rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center min-h-[4rem] sm:min-h-[5rem] overflow-x-auto scrollbar-hide ${
+                                                idx === step 
+                                                ? (step === maxSteps ? 'bg-[#fde047] border-[4px] sm:border-[6px] border-[#eab308] shadow-[0_15px_30px_rgba(234,179,8,0.5)] math-current' : 'bg-white border-[4px] sm:border-[6px] border-blue-400 shadow-[0_10px_25px_rgba(59,130,246,0.3)] math-current') 
+                                                : 'bg-white/70 border-[2px] sm:border-[3px] border-slate-200 math-history'
+                                            }`}>
+                                                <MathDisplay latex={s.latex} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Right Panel: Dynamic Graphic */}
+                            <div className="flex-1 lg:w-[45%] shrink-0 flex items-center justify-center relative bg-gradient-to-br from-white to-slate-100 rounded-[2rem] border-[3px] border-slate-200 shadow-md min-h-[250px] lg:min-h-0 overflow-hidden">
+                                <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
+                                <div className="w-full h-full flex items-center justify-center p-4 relative z-10 transition-all duration-500">
+                                    {currentExercise.steps.slice(0, step + 1).reverse().find(s => s.graphic)?.graphic || 
+                                     currentExercise.steps.find(s => s.graphic)?.graphic}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Zona Inferior: Robot y Feedback */}
+                        <div className="shrink-0 bg-white w-full px-4 py-2 sm:px-8 sm:py-3 flex items-center gap-4 sm:gap-6 border-t-[4px] border-slate-100 z-20 relative shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                            <div className="shrink-0 absolute -top-12 sm:relative sm:-top-0 left-4 sm:left-0 drop-shadow-xl">
+                                <RobotAssistant step={step} maxSteps={maxSteps} />
+                            </div>
+                            <div className="flex-1 text-sm sm:text-base md:text-lg font-bold text-slate-700 leading-snug sm:leading-relaxed bg-blue-50/80 p-3 sm:p-4 rounded-[1rem] border-2 border-blue-100 min-h-[4rem] flex items-center shadow-sm ml-[4.5rem] sm:ml-0">
+                                <div key={`speech-${exIdx}-${step}`} className="animate-slideInRight w-full">
+                                    {currentStepData.robotSpeech}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Controles Nav */}
+                        <div className="shrink-0 bg-gradient-to-b from-[#e0e7ff] to-[#c7d2fe] p-2 sm:p-3 w-full flex flex-col items-center border-t-[4px] border-white z-20">
+                            <div className="flex justify-center items-stretch w-full max-w-4xl gap-2 sm:gap-4 h-10 sm:h-12">
+                                <button
+                                    onClick={prevStep}
+                                    disabled={step === 0}
+                                    className="flex-[0.8] bg-[#a5b4fc] border-b-[4px] border-[#6366f1] text-[#312e81] rounded-l-xl font-black text-sm sm:text-lg flex items-center justify-center gap-1 active:border-b-0 active:translate-y-[4px] disabled:opacity-40 transition-all hover:bg-[#c7d2fe]"
+                                >
+                                    <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3px]" />
+                                    <span className="hidden sm:inline">Atrás</span>
+                                </button>
+
+                                <div className="bg-[#6366f1] text-white font-black px-3 sm:px-6 text-sm sm:text-xl flex items-center justify-center border-b-[4px] border-[#4338ca] shadow-inner whitespace-nowrap min-w-[4rem]">
+                                    Paso {step + 1}/{maxSteps + 1}
+                                </div>
+
+                                <button
+                                    onClick={nextStep}
+                                    className={`flex-[2] border-b-[4px] text-white rounded-r-xl font-black text-sm sm:text-xl flex items-center justify-center gap-2 active:border-b-0 active:translate-y-[4px] transition-all shadow-sm hover:brightness-110 ${
+                                        step === maxSteps
+                                            ? 'bg-gradient-to-r from-[#10b981] to-[#047857] border-[#065f46] animate-pulse'
+                                            : 'bg-gradient-to-r from-[#3b82f6] to-[#2563eb] border-[#1d4ed8]'
+                                    }`}
+                                >
+                                    <span>
+                                        {step < maxSteps
+                                            ? '¡Siguiente Paso!'
+                                            : exIdx < EXERCISES.length - 1
+                                            ? `Siguiente Reto`
+                                            : '¡Volver!'}
+                                    </span>
+                                    <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3px]" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
